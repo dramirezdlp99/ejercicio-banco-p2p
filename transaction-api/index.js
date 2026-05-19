@@ -1,9 +1,12 @@
 const express = require('express');
 const amqp = require('amqplib');
-const { v4: uuidv4 } = require('uuid');
+const rateLimit = require('express-rate-limit');
+const { randomUUID } = require('crypto');
 
 const app = express();
 app.use(express.json());
+
+app.use(rateLimit({ windowMs: 1000, max: 10, message: 'Demasiadas solicitudes' }));
 
 let channel;
 
@@ -14,7 +17,10 @@ async function connectRabbitMQ() {
     try {
       const conn = await amqp.connect(process.env.RABBITMQ_URL);
       channel = await conn.createChannel();
-      await channel.assertQueue('transfer_commands', { durable: true });
+      await channel.assertQueue('transfer_commands', {
+        durable: true,
+        arguments: { 'x-dead-letter-exchange': 'dlx.transfer_commands' },
+      });
       console.log('✅ Conectado a RabbitMQ');
       return;
     } catch (err) {
@@ -30,24 +36,23 @@ async function connectRabbitMQ() {
 app.post('/transfer', async (req, res) => {
   const { from_user, to_user, amount } = req.body;
 
-  if (!from_user || !to_user || !amount) {
-    return res.status(400).json({ error: 'Faltan campos: from_user, to_user, amount' });
+  if (!from_user || !to_user || !amount || amount <= 0) {
+    return res.status(400).json({ error: 'Campos requeridos: from_user, to_user, amount (> 0)' });
   }
 
-  const tx_id = uuidv4();
-  const comando = { tx_id, from_user, to_user, amount, timestamp: new Date().toISOString() };
+  const tx_id = randomUUID();
+  const comando = { tx_id, from_user, to_user, amount, issued_at: new Date().toISOString() };
 
-  channel.sendToQueue(
-    'transfer_commands',
-    Buffer.from(JSON.stringify(comando)),
-    { persistent: true }
-  );
+  channel.sendToQueue('transfer_commands', Buffer.from(JSON.stringify(comando)), {
+    persistent: true,
+    contentType: 'application/json',
+  });
 
   console.log(`📤 Comando enviado a RabbitMQ: ${tx_id}`);
-  res.json({ message: 'Transferencia recibida', tx_id });
+  res.status(202).json({ tx_id, message: 'Transaccion en proceso', status: 'PENDING' });
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', service: 'transaction-api' }));
 
 async function main() {
   await connectRabbitMQ();

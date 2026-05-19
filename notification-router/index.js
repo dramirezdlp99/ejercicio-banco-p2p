@@ -42,26 +42,32 @@ async function main() {
   await connectRabbitMQ();
   await connectKafka();
 
-  await consumer.subscribe({ topic: 'transactions_log', fromBeginning: true });
+  await consumer.subscribe({ topic: 'transactions_log', fromBeginning: false });
 
   await consumer.run({
     eachMessage: async ({ message }) => {
       const evento = JSON.parse(message.value.toString());
 
-      if (evento.status === 'COMPLETED') {
-        const emailTask = {
-          to: `${evento.from_user}@banco.com`,
-          body: `Tu transferencia de $${evento.amount} a ${evento.to_user} fue exitosa. ID: ${evento.tx_id}`
-        };
+      if (evento.status !== 'COMPLETED') return;
 
-        channel.sendToQueue(
-          'email_queue',
-          Buffer.from(JSON.stringify(emailTask)),
-          { persistent: true }
-        );
+      const senderEmail = {
+        to: `${evento.from_user}@ledger.com`,
+        subject: 'Confirmacion de transferencia enviada',
+        body: `Transferiste exitosamente $${evento.amount} a ${evento.to_user}.`,
+        tx_id: evento.tx_id
+      };
 
-        console.log(`📧 Tarea de email enviada para: ${evento.tx_id}`);
-      }
+      const receiverEmail = {
+        to: `${evento.to_user}@ledger.com`,
+        subject: 'Has recibido una transferencia',
+        body: `Recibiste $${evento.amount} de ${evento.from_user}.`,
+        tx_id: evento.tx_id
+      };
+
+      channel.sendToQueue('email_queue', Buffer.from(JSON.stringify(senderEmail)), { persistent: true });
+      channel.sendToQueue('email_queue', Buffer.from(JSON.stringify(receiverEmail)), { persistent: true });
+
+      console.log(`📧 2 emails encolados para TX: ${evento.tx_id}`);
     }
   });
 }

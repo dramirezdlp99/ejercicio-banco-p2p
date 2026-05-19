@@ -1,0 +1,28 @@
+name: Deploy (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          EC2_PATH: ${{ secrets.EC2_PATH }}
+          EC2_BRANCH: ${{ secrets.EC2_BRANCH }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            BRANCH="${EC2_BRANCH:-aws}"
+            cd "$EC2_PATH"
+            git fetch origin
+            git checkout "$BRANCH"
+            git pull origin "$BRANCH"
+            docker compose up -d --build
+            docker compose ps
