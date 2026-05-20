@@ -1,10 +1,12 @@
 const express = require('express');
 const amqp = require('amqplib');
 const rateLimit = require('express-rate-limit');
+const cors = require('cors');
 const { randomUUID } = require('crypto');
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
 app.use(rateLimit({ windowMs: 1000, max: 10, message: 'Demasiadas solicitudes' }));
 

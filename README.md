@@ -5,7 +5,7 @@ Repositorio de referencia para la plataforma de transacciones bancarias basada e
 ## Requisitos
 - Node.js 20 LTS
 - Docker y Docker Compose v2
-- Acceso a AWS (Amazon MQ + EC2 con Kafka)
+- Acceso a AWS (EC2 con Kafka). RabbitMQ se ejecuta en Docker en el nodo `ec2-services`.
 
 ## Variables de entorno
 Copiar y completar:
@@ -15,7 +15,9 @@ cp .env.example .env
 ```
 
 Variables:
-- `RABBITMQ_URL`: endpoint AMQPS de Amazon MQ
+- `RABBITMQ_URL`: endpoint AMQP del RabbitMQ (ej: `amqp://admin:pass@10.0.1.X:5672`)
+- `RABBITMQ_HTTP_API`: endpoint HTTP del management (ej: `http://10.0.1.X:15672`)
+- `RABBITMQ_USER` / `RABBITMQ_PASS`: credenciales del management/API
 - `KAFKA_BROKER`: IP privada del nodo Kafka (EC2)
 
 ## Levantar servicios (EC2 services node)
