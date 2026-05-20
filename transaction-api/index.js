@@ -8,7 +8,20 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-app.use(rateLimit({ windowMs: 1000, max: 10, message: 'Demasiadas solicitudes' }));
+// Rate limiter configurable vía variables de entorno:
+// - DISABLE_RATE_LIMIT=1 -> desactiva (útil en desarrollo)
+// - RATE_LIMIT_WINDOW_MS (ms) y RATE_LIMIT_MAX (número de requests por ventana)
+const limiter = rateLimit({
+  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 1000,
+  max: Number(process.env.RATE_LIMIT_MAX) || 10,
+  message: process.env.RATE_LIMIT_MESSAGE || 'Demasiadas solicitudes',
+});
+
+if (process.env.DISABLE_RATE_LIMIT === '1') {
+  console.log('⚠️ Rate limiter desactivado (DISABLE_RATE_LIMIT=1)');
+} else {
+  app.use(limiter);
+}
 
 let channel;
 
