@@ -49,29 +49,35 @@ async function main() {
     const comando = JSON.parse(msg.content.toString());
     console.log(`⚙️  Procesando transacción: ${comando.tx_id}`);
 
-    // Simular validación: 80% éxito, 20% fallo
-    const status = Math.random() > 0.2 ? 'COMPLETED' : 'FAILED';
+    try {
+      // Simular validación: 80% éxito, 20% fallo
+      const status = Math.random() > 0.2 ? 'COMPLETED' : 'FAILED';
 
-    const evento = {
-      tx_id: comando.tx_id,
-      from_user: comando.from_user,
-      to_user: comando.to_user,
-      amount: comando.amount,
-      status,
-      timestamp: new Date().toISOString()
-    };
+      const evento = {
+        tx_id: comando.tx_id,
+        from_user: comando.from_user,
+        to_user: comando.to_user,
+        amount: comando.amount,
+        status,
+        timestamp: new Date().toISOString()
+      };
 
-    // Publicar en Kafka como ledger inmutable
-    await producer.send({
-      topic: 'transactions_log',
-      messages: [{
-        key: comando.tx_id,
-        value: JSON.stringify(evento)
-      }]
-    });
+      // Publicar en Kafka como ledger inmutable
+      await producer.send({
+        topic: 'transactions_log',
+        messages: [{
+          key: comando.tx_id,
+          value: JSON.stringify(evento)
+        }]
+      });
 
-    console.log(`📒 Evento publicado en Kafka: ${comando.tx_id} -> ${status}`);
-    channel.ack(msg);
+      console.log(`📒 Evento publicado en Kafka: ${comando.tx_id} -> ${status}`);
+      channel.ack(msg);
+    } catch (err) {
+      console.error(`❌ Error procesando ${comando.tx_id}:`, err.message);
+      // Devolver el mensaje a la cola para reintento
+      channel.nack(msg, false, true);
+    }
   });
 }
 

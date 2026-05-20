@@ -4,205 +4,612 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Bancario P2P</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f172a;
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      background: #060b18;
       color: #e2e8f0;
-      padding: 20px;
+      min-height: 100vh;
+      padding: 28px 32px;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(14,165,233,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 90% 90%, rgba(139,92,246,0.08) 0%, transparent 50%);
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .logo {
+      width: 46px; height: 46px;
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 20px rgba(14,165,233,0.35);
     }
     h1 {
-      text-align: center;
-      color: #38bdf8;
-      margin-bottom: 10px;
-      font-size: 28px;
+      font-size: 22px;
+      font-weight: 800;
+      background: linear-gradient(90deg, #e2e8f0 0%, #38bdf8 60%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
     }
-    .status {
-      text-align: center;
-      margin-bottom: 20px;
-      font-size: 14px;
-    }
-    .status.conectado { color: #4ade80; }
-    .status.desconectado { color: #f87171; }
-    .stats {
+    .subtitle { font-size: 12px; color: #475569; margin-top: 2px; }
+
+    .status-pill {
       display: flex;
-      justify-content: center;
-      gap: 20px;
-      margin-bottom: 20px;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 16px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    .status-pill.conectado {
+      background: rgba(74,222,128,0.08);
+      border-color: rgba(74,222,128,0.3);
+      color: #4ade80;
+    }
+    .status-pill.desconectado {
+      background: rgba(248,113,113,0.08);
+      border-color: rgba(248,113,113,0.3);
+      color: #f87171;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .dot.pulso { animation: pulsoDot 1.5s ease-in-out infinite; }
+    @keyframes pulsoDot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    /* ── STAT CARDS ── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
     }
     .stat-card {
-      background: #1e293b;
-      border-radius: 10px;
-      padding: 15px 25px;
-      text-align: center;
-      min-width: 140px;
+      background: rgba(30,41,59,0.6);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 20px 22px;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      transition: transform 0.2s, box-shadow 0.2s;
     }
-    .stat-card .numero {
-      font-size: 32px;
-      font-weight: bold;
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      border-radius: 16px 16px 0 0;
+    }
+    .stat-card.total::before    { background: linear-gradient(90deg, #38bdf8, #6366f1); }
+    .stat-card.completadas::before { background: linear-gradient(90deg, #4ade80, #22d3ee); }
+    .stat-card.fallidas::before { background: linear-gradient(90deg, #64748b, #94a3b8); }
+    .stat-card.fraude::before   { background: linear-gradient(90deg, #ef4444, #f97316); }
+
+    .stat-icon {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      margin-bottom: 14px;
+    }
+    .stat-card.total .stat-icon       { background: rgba(56,189,248,0.12); }
+    .stat-card.completadas .stat-icon  { background: rgba(74,222,128,0.12); }
+    .stat-card.fallidas .stat-icon     { background: rgba(100,116,139,0.15); }
+    .stat-card.fraude .stat-icon       { background: rgba(239,68,68,0.12); }
+
+    .stat-numero {
+      font-size: 36px;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -1px;
+      margin-bottom: 6px;
+    }
+    .stat-card.total .stat-numero       { color: #38bdf8; }
+    .stat-card.completadas .stat-numero { color: #4ade80; }
+    .stat-card.fallidas .stat-numero    { color: #94a3b8; }
+    .stat-card.fraude .stat-numero      { color: #f87171; }
+
+    .stat-label {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* ── CONTROLES ── */
+    .controles {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .filtros { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filtros button {
+      padding: 7px 16px;
+      border-radius: 99px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(30,41,59,0.5);
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.02em;
+    }
+    .filtros button:hover { border-color: rgba(255,255,255,0.2); color: #e2e8f0; }
+    .filtros button.activo {
+      background: rgba(14,165,233,0.2);
+      border-color: rgba(14,165,233,0.5);
       color: #38bdf8;
     }
-    .stat-card.fraude .numero { color: #f87171; }
-    .stat-card .label { font-size: 12px; color: #94a3b8; margin-top: 4px; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: #1e293b;
-      border-radius: 10px;
-      overflow: hidden;
+    .filtros button.activo.fraude-btn {
+      background: rgba(239,68,68,0.15);
+      border-color: rgba(239,68,68,0.4);
+      color: #f87171;
     }
-    thead tr { background: #0f172a; }
-    th {
-      padding: 12px 16px;
-      text-align: left;
-      font-size: 13px;
+    .filtros button.activo.fallida-btn {
+      background: rgba(100,116,139,0.2);
+      border-color: rgba(100,116,139,0.4);
       color: #94a3b8;
-      text-transform: uppercase;
     }
-    td { padding: 12px 16px; font-size: 14px; border-top: 1px solid #334155; }
-    tr.normal:hover { background: #273449; }
-    tr.sospechosa {
-      background: rgba(248, 113, 113, 0.15);
-      animation: pulso 1.5s ease-in-out;
+    .filtros button.activo.completada-btn {
+      background: rgba(74,222,128,0.12);
+      border-color: rgba(74,222,128,0.35);
+      color: #4ade80;
     }
-    tr.sospechosa td { color: #fca5a5; }
-    tr.failed td { color: #94a3b8; }
-    @keyframes pulso {
-      0% { background: rgba(248, 113, 113, 0.5); }
-      100% { background: rgba(248, 113, 113, 0.15); }
+
+    .busqueda {
+      flex: 1; min-width: 180px; max-width: 280px; position: relative;
     }
-    .badge {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: bold;
+    .busqueda input {
+      width: 100%;
+      padding: 8px 14px 8px 36px;
+      border-radius: 99px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(30,41,59,0.5);
+      color: #e2e8f0;
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
     }
-    .badge.completed { background: #166534; color: #4ade80; }
-    .badge.failed { background: #450a0a; color: #f87171; }
-    .badge.fraude { background: #7f1d1d; color: #fca5a5; }
-    .no-data {
-      text-align: center;
-      padding: 40px;
+    .busqueda input:focus {
+      border-color: rgba(56,189,248,0.4);
+      background: rgba(30,41,59,0.8);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.08);
+    }
+    .busqueda input::placeholder { color: #334155; }
+    .busqueda .icono {
+      position: absolute; left: 13px; top: 50%;
+      transform: translateY(-50%);
+      color: #334155; font-size: 13px; pointer-events: none;
+    }
+
+    .btn-limpiar {
+      margin-left: auto;
+      padding: 7px 16px;
+      border-radius: 99px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: transparent;
       color: #475569;
-      font-size: 16px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
     }
+    .btn-limpiar:hover {
+      border-color: rgba(248,113,113,0.4);
+      color: #f87171;
+      background: rgba(248,113,113,0.06);
+    }
+
+    /* ── TABLA ── */
+    .tabla-wrap {
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(15,23,42,0.7);
+      backdrop-filter: blur(12px);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr {
+      background: rgba(8,14,28,0.8);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    th {
+      padding: 13px 18px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: #334155;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    td {
+      padding: 14px 18px;
+      font-size: 13px;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.15s;
+    }
+    tr.normal:hover td { background: rgba(56,189,248,0.04); }
+    tr.sospechosa td {
+      background: rgba(239,68,68,0.07);
+      animation: pulsoFila 1.5s ease-in-out;
+    }
+    tr.sospechosa:hover td { background: rgba(239,68,68,0.12); }
+    tr.failed td { color: #334155; }
+
+    @keyframes pulsoFila {
+      0%   { background: rgba(239,68,68,0.3); }
+      100% { background: rgba(239,68,68,0.07); }
+    }
+    @keyframes entrada {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    tr.nueva td { animation: entrada 0.35s cubic-bezier(0.34,1.56,0.64,1); }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+    .badge.completed {
+      background: rgba(74,222,128,0.1);
+      color: #4ade80;
+      border: 1px solid rgba(74,222,128,0.25);
+    }
+    .badge.failed {
+      background: rgba(100,116,139,0.1);
+      color: #64748b;
+      border: 1px solid rgba(100,116,139,0.2);
+    }
+    .badge.fraude {
+      background: rgba(239,68,68,0.12);
+      color: #f87171;
+      border: 1px solid rgba(239,68,68,0.3);
+      animation: badgePulso 2s ease-in-out infinite;
+    }
+    @keyframes badgePulso {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+      50% { box-shadow: 0 0 8px 2px rgba(239,68,68,0.2); }
+    }
+
+    /* ── TX-ID ── */
+    .tx-id {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #334155;
+      cursor: default;
+      position: relative;
+      padding: 3px 8px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.05);
+      transition: color 0.15s;
+    }
+    .tx-id:hover { color: #38bdf8; border-color: rgba(56,189,248,0.2); }
+    .tx-id::after {
+      content: attr(data-full);
+      display: none;
+      position: absolute;
+      left: 0; top: 110%;
+      background: #0f172a;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 11px;
+      white-space: nowrap;
+      z-index: 100;
+      color: #94a3b8;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .tx-id:hover::after { display: block; }
+
+    /* ── MONTO ── */
+    .monto-valor { font-weight: 600; color: #e2e8f0; }
+    tr.sospechosa .monto-valor { color: #fca5a5; font-weight: 700; }
+    tr.failed .monto-valor { color: #334155; }
+
+    /* ── USUARIO ── */
+    .usuario {
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .avatar {
+      width: 26px; height: 26px;
+      border-radius: 8px;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    /* ── HORA ── */
+    .hora { color: #475569; font-size: 12px; font-variant-numeric: tabular-nums; }
+
+    /* ── VACÍO ── */
+    .no-data, .sin-resultados {
+      text-align: center;
+      padding: 60px 20px;
+      color: #1e293b;
+      font-size: 15px;
+    }
+    .no-data-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+    .no-data-text { color: #334155; }
+
+    /* ── FLECHA ── */
+    .flecha { color: #1e293b; font-size: 12px; }
+    tr.sospechosa .flecha { color: #7f1d1d; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 99px; }
   </style>
 </head>
 <body>
 
-  <h1>🏦 Dashboard Bancario P2P</h1>
-  <div class="status desconectado" id="status">⚡ Conectando al servidor...</div>
+  <header>
+    <div class="header-left">
+      <div class="logo">🏦</div>
+      <div>
+        <h1>BancoP2P · Ledger en Vivo</h1>
+        <div class="subtitle">Event Sourcing · RabbitMQ + Kafka · WebSocket</div>
+      </div>
+    </div>
+    <div class="status-pill desconectado" id="status">
+      <span class="dot"></span>
+      <span id="status-text">Conectando...</span>
+    </div>
+  </header>
 
   <div class="stats">
-    <div class="stat-card">
-      <div class="numero" id="total">0</div>
-      <div class="label">Total Transacciones</div>
+    <div class="stat-card total">
+      <div class="stat-icon">📊</div>
+      <div class="stat-numero" id="total">0</div>
+      <div class="stat-label">Total transacciones</div>
     </div>
-    <div class="stat-card">
-      <div class="numero" id="completadas">0</div>
-      <div class="label">Completadas</div>
+    <div class="stat-card completadas">
+      <div class="stat-icon">✅</div>
+      <div class="stat-numero" id="completadas">0</div>
+      <div class="stat-label">Completadas</div>
+    </div>
+    <div class="stat-card fallidas">
+      <div class="stat-icon">❌</div>
+      <div class="stat-numero" id="fallidas">0</div>
+      <div class="stat-label">Fallidas</div>
     </div>
     <div class="stat-card fraude">
-      <div class="numero" id="sospechosas">0</div>
-      <div class="label">Sospechosas</div>
+      <div class="stat-icon">🚨</div>
+      <div class="stat-numero" id="sospechosas">0</div>
+      <div class="stat-label">Alertas de fraude</div>
     </div>
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>ID Transacción</th>
-        <th>De</th>
-        <th>Para</th>
-        <th>Monto</th>
-        <th>Estado</th>
-        <th>Hora</th>
-      </tr>
-    </thead>
-    <tbody id="tabla">
-      <tr><td colspan="6" class="no-data">⏳ Esperando transacciones...</td></tr>
-    </tbody>
-  </table>
+  <div class="controles">
+    <div class="filtros">
+      <button class="activo" data-filtro="todas">Todas</button>
+      <button class="completada-btn" data-filtro="completadas">Completadas</button>
+      <button class="fallida-btn" data-filtro="fallidas">Fallidas</button>
+      <button class="fraude-btn" data-filtro="sospechosas">Fraude</button>
+    </div>
+    <div class="busqueda">
+      <span class="icono">🔍</span>
+      <input type="text" id="busqueda" placeholder="Buscar usuario...">
+    </div>
+    <button class="btn-limpiar" id="btnLimpiar">Limpiar</button>
+  </div>
+
+  <div class="tabla-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Origen</th>
+          <th></th>
+          <th>Destino</th>
+          <th>Monto</th>
+          <th>Estado</th>
+          <th>Hora</th>
+        </tr>
+      </thead>
+      <tbody id="tabla">
+        <tr>
+          <td colspan="7" class="no-data">
+            <div class="no-data-icon">⏳</div>
+            <div class="no-data-text">Esperando transacciones...</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
   <script>
-    const WS_URL = `ws://${window.location.hostname}:8081`;
+    const WS_URL = `ws://${window.location.hostname || 'localhost'}:8081`;
     let transacciones = new Map();
+    let filtroActivo = 'todas';
+    let textoBusqueda = '';
+
+    const coloresAvatar = [
+      ['#0ea5e9','#0369a1'],['#8b5cf6','#6d28d9'],['#10b981','#047857'],
+      ['#f59e0b','#b45309'],['#ec4899','#be185d'],['#14b8a6','#0f766e'],
+    ];
+    function avatarColor(nombre) {
+      let h = 0;
+      for (let i = 0; i < nombre.length; i++) h = nombre.charCodeAt(i) + ((h << 5) - h);
+      return coloresAvatar[Math.abs(h) % coloresAvatar.length];
+    }
 
     function actualizarEstadisticas() {
       const todas = Array.from(transacciones.values());
       document.getElementById('total').textContent = todas.length;
-      document.getElementById('completadas').textContent = todas.filter(t => t.status === 'COMPLETED').length;
+      document.getElementById('completadas').textContent = todas.filter(t => t.status === 'COMPLETED' && !t.fraud).length;
+      document.getElementById('fallidas').textContent = todas.filter(t => t.status === 'FAILED').length;
       document.getElementById('sospechosas').textContent = todas.filter(t => t.fraud).length;
     }
 
-    function renderTabla() {
+    function filtrar(lista) {
+      let r = lista;
+      if (filtroActivo === 'completadas') r = r.filter(t => t.status === 'COMPLETED' && !t.fraud);
+      else if (filtroActivo === 'fallidas')    r = r.filter(t => t.status === 'FAILED');
+      else if (filtroActivo === 'sospechosas') r = r.filter(t => t.fraud);
+      if (textoBusqueda) {
+        const q = textoBusqueda.toLowerCase();
+        r = r.filter(t => t.from_user.toLowerCase().includes(q) || t.to_user.toLowerCase().includes(q));
+      }
+      return r;
+    }
+
+    function renderUsuario(nombre) {
+      const [bg, border] = avatarColor(nombre);
+      return `<span class="usuario">
+        <span class="avatar" style="background:${bg}22;color:${bg};border:1px solid ${bg}44">${nombre[0].toUpperCase()}</span>
+        ${nombre}
+      </span>`;
+    }
+
+    function renderTabla(txNueva = null) {
       const tbody = document.getElementById('tabla');
       const todas = Array.from(transacciones.values()).reverse();
 
       if (todas.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="no-data">⏳ Esperando transacciones...</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="7" class="no-data">
+          <div class="no-data-icon">⏳</div>
+          <div class="no-data-text">Esperando transacciones...</div>
+        </td></tr>`;
         return;
       }
 
-      tbody.innerHTML = todas.map(tx => {
-        const clase = tx.fraud ? 'sospechosa' : (tx.status === 'FAILED' ? 'failed' : 'normal');
-        const hora = new Date(tx.timestamp).toLocaleTimeString('es-CO');
-        const monto = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'USD' }).format(tx.amount);
-        const estadoBadge = tx.fraud
-          ? '<span class="badge fraude">🚨 SOSPECHOSA</span>'
-          : tx.status === 'COMPLETED'
-            ? '<span class="badge completed">✅ COMPLETADA</span>'
-            : '<span class="badge failed">❌ FALLIDA</span>';
+      const visibles = filtrar(todas);
+      if (visibles.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="no-data">
+          <div class="no-data-icon">🔍</div>
+          <div class="no-data-text">Sin resultados para el filtro aplicado</div>
+        </td></tr>`;
+        return;
+      }
 
-        return `
-          <tr class="${clase}" id="tx-${tx.tx_id}">
-            <td>${tx.tx_id.substring(0, 8)}...</td>
-            <td>${tx.from_user}</td>
-            <td>${tx.to_user}</td>
-            <td>${monto}</td>
-            <td>${estadoBadge}</td>
-            <td>${hora}</td>
-          </tr>
-        `;
+      tbody.innerHTML = visibles.map(tx => {
+        const esNueva = txNueva === tx.tx_id ? 'nueva' : '';
+        const clase = tx.fraud ? 'sospechosa' : (tx.status === 'FAILED' ? 'failed' : `normal ${esNueva}`);
+        const hora = new Date(tx.timestamp).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const monto = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(tx.amount);
+
+        const badge = tx.fraud
+          ? '<span class="badge fraude">🚨 Fraude</span>'
+          : tx.status === 'COMPLETED'
+            ? '<span class="badge completed">✓ Completada</span>'
+            : '<span class="badge failed">✕ Fallida</span>';
+
+        return `<tr class="${clase}" id="tx-${tx.tx_id}">
+          <td><span class="tx-id" data-full="${tx.tx_id}">${tx.tx_id.substring(0,8)}…</span></td>
+          <td>${renderUsuario(tx.from_user)}</td>
+          <td><span class="flecha">→</span></td>
+          <td>${renderUsuario(tx.to_user)}</td>
+          <td><span class="monto-valor">${monto}</span></td>
+          <td>${badge}</td>
+          <td><span class="hora">${hora}</span></td>
+        </tr>`;
       }).join('');
     }
 
+    document.querySelectorAll('.filtros button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filtros button').forEach(b => b.classList.remove('activo'));
+        btn.classList.add('activo');
+        filtroActivo = btn.dataset.filtro;
+        renderTabla();
+      });
+    });
+
+    document.getElementById('busqueda').addEventListener('input', e => {
+      textoBusqueda = e.target.value.trim();
+      renderTabla();
+    });
+
+    document.getElementById('btnLimpiar').addEventListener('click', () => {
+      transacciones.clear();
+      document.getElementById('busqueda').value = '';
+      textoBusqueda = '';
+      filtroActivo = 'todas';
+      document.querySelectorAll('.filtros button').forEach(b => b.classList.remove('activo'));
+      document.querySelector('[data-filtro="todas"]').classList.add('activo');
+      renderTabla();
+      actualizarEstadisticas();
+    });
+
     function conectar() {
       const ws = new WebSocket(WS_URL);
-      const statusEl = document.getElementById('status');
+      const pill = document.getElementById('status');
+      const texto = document.getElementById('status-text');
+      const dot = pill.querySelector('.dot');
 
       ws.onopen = () => {
-        statusEl.textContent = '🟢 Conectado al servidor en tiempo real';
-        statusEl.className = 'status conectado';
+        pill.className = 'status-pill conectado';
+        texto.textContent = 'En vivo';
+        dot.classList.add('pulso');
       };
 
       ws.onmessage = (event) => {
-        const mensaje = JSON.parse(event.data);
-
-        if (mensaje.type === 'INIT') {
-          mensaje.data.forEach(tx => transacciones.set(tx.tx_id, tx));
-        } else if (mensaje.type === 'NEW_TRANSACTION') {
-          transacciones.set(mensaje.data.tx_id, { ...mensaje.data, fraud: false });
-        } else if (mensaje.type === 'FRAUD_ALERT') {
-          const tx = transacciones.get(mensaje.data.tx_id);
-          if (tx) transacciones.set(mensaje.data.tx_id, { ...tx, fraud: true });
+        const msg = JSON.parse(event.data);
+        let txNueva = null;
+        if (msg.type === 'INIT') {
+          msg.data.forEach(tx => transacciones.set(tx.tx_id, tx));
+        } else if (msg.type === 'NEW_TRANSACTION') {
+          transacciones.set(msg.data.tx_id, { ...msg.data, fraud: false });
+          txNueva = msg.data.tx_id;
+        } else if (msg.type === 'FRAUD_ALERT') {
+          const tx = transacciones.get(msg.data.tx_id);
+          if (tx) transacciones.set(msg.data.tx_id, { ...tx, fraud: true });
         }
-
-        renderTabla();
+        renderTabla(txNueva);
         actualizarEstadisticas();
       };
 
       ws.onclose = () => {
-        statusEl.textContent = '🔴 Desconectado — reconectando en 3 segundos...';
-        statusEl.className = 'status desconectado';
+        pill.className = 'status-pill desconectado';
+        texto.textContent = 'Reconectando...';
+        dot.classList.remove('pulso');
         setTimeout(conectar, 3000);
       };
     }
 
     conectar();
   </script>
-
 </body>
 </html>

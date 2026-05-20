@@ -33,6 +33,12 @@ app.post('/transfer', async (req, res) => {
   if (!from_user || !to_user || !amount) {
     return res.status(400).json({ error: 'Faltan campos: from_user, to_user, amount' });
   }
+  if (typeof amount !== 'number' || amount <= 0) {
+    return res.status(400).json({ error: 'amount debe ser un número positivo' });
+  }
+  if (!channel) {
+    return res.status(503).json({ error: 'Servicio no disponible, intentar de nuevo' });
+  }
 
   const tx_id = uuidv4();
   const comando = { tx_id, from_user, to_user, amount, timestamp: new Date().toISOString() };

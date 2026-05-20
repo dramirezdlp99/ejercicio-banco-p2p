@@ -42,7 +42,7 @@ async function main() {
   await connectRabbitMQ();
   await connectKafka();
 
-  await consumer.subscribe({ topic: 'transactions_log', fromBeginning: true });
+  await consumer.subscribe({ topic: 'transactions_log', fromBeginning: false });
 
   await consumer.run({
     eachMessage: async ({ message }) => {
