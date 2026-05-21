@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LedgerOS · Banking Transaction Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    :root {
+      --bg0: #04091A;
+      --bg1: #070F24;
+      --bg2: #0C1830;
+      --bg3: #111E38;
+      --border: rgba(100,160,255,0.10);
+      --border2: rgba(100,160,255,0.18);
+      --cyan: #00C8FF;
+      --cyan-dim: rgba(0,200,255,0.15);
+      --indigo: #6366F1;
+      --indigo-dim: rgba(99,102,241,0.15);
+      --mint: #00E5A0;
+      --mint-dim: rgba(0,229,160,0.12);
+      --red: #FF3F6C;
+      --red-dim: rgba(255,63,108,0.12);
+      --amber: #F59E0B;
+      --amber-dim: rgba(245,158,11,0.12);
+      --txt: #CDD9F0;
+      --txt2: #6B8BAE;
+      --txt3: #3A5070;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+    }
+
+    html { font-size: 14px; }
+    body {
+      background: var(--bg0);
+      color: var(--txt);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,200,255,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,200,255,0.025) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body > * { position: relative; z-index: 1; }
+
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 28px;
+      background: rgba(4,9,26,0.92);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-logo {
+      font-family: var(--font-head);
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+    .nav-logo span { color: var(--cyan); }
+
+    .nav-services {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .svc-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--txt2);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--txt3);
+      box-shadow: 0 0 8px var(--txt3);
+    }
+    .dot.online { background: var(--mint); box-shadow: 0 0 8px var(--mint); }
+    .dot.offline { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+    .nav-time {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--txt3);
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px 28px;
+    }
+
+    .card {
+      background: var(--bg1);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color 0.3s;
+    }
+    .card:hover { border-color: var(--border2); }
+
+    .card-title {
+      font-family: var(--font-head);
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--txt3);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title .pill {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: var(--cyan-dim);
+      color: var(--cyan);
+      letter-spacing: 0;
+    }
+    .card-title .pill.red { background: var(--red-dim); color: var(--red); }
+    .card-title .pill.mint { background: var(--mint-dim); color: var(--mint); }
+
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .metric {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+
+    .metric-label {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--txt3);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .metric-value {
+      font-family: var(--font-head);
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .metric-sub {
+      font-size: 0.72rem;
+      color: var(--txt2);
+      font-family: var(--font-mono);
+    }
+    .metric-value.cyan { color: var(--cyan); }
+    .metric-value.mint { color: var(--mint); }
+    .metric-value.red { color: var(--red); }
+    .metric-value.amber { color: var(--amber); }
+    .metric-value.indigo { color: var(--indigo); }
+
+    .top-grid {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .form-group { margin-bottom: 14px; }
+    .form-label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--txt2);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .form-control {
+      width: 100%;
+      background: var(--bg0);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--txt);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .form-control:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(0,200,255,0.08);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-family: var(--font-head);
+      font-weight: 600;
+      font-size: 0.82rem;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      background: var(--cyan);
+      color: #04091A;
+      border-color: var(--cyan);
+      box-shadow: 0 0 20px rgba(0,200,255,0.25);
+    }
+    .btn:hover { box-shadow: 0 0 30px rgba(0,200,255,0.45); filter: brightness(1.1); }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-stress {
+      background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(0,200,255,0.1));
+      color: var(--indigo);
+      border-color: rgba(99,102,241,0.35);
+      font-size: 0.78rem;
+      padding: 8px 14px;
+      box-shadow: none;
+    }
+    .btn-stress:hover { background: rgba(99,102,241,0.25); box-shadow: 0 0 16px rgba(99,102,241,0.2); }
+
+    .btn-danger {
+      background: var(--red-dim);
+      color: var(--red);
+      border-color: rgba(255,63,108,0.3);
+      box-shadow: none;
+    }
+
+    .btn-full { width: 100%; }
+
+    .stress-presets {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    input[type=range] {
+      flex: 1;
+      appearance: none;
+      -webkit-appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--bg3);
+      outline: none;
+      cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 8px rgba(0,200,255,0.5);
+      cursor: pointer;
+    }
+    .amount-display {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--cyan);
+      min-width: 80px;
+      text-align: right;
+    }
+
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .ledger-wrap { overflow-y: auto; max-height: 320px; }
+
+    .ledger-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+    .ledger-table th {
+      text-align: left;
+      padding: 8px 10px;
+      color: var(--txt3);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: var(--bg1);
+    }
+    .ledger-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(100,160,255,0.04);
+      color: var(--txt2);
+      vertical-align: middle;
+    }
+    .ledger-table tr { transition: background 0.3s; }
+    .ledger-table tr:hover td { background: rgba(0,200,255,0.03); }
+
+    .ledger-table tr.new-row td { animation: rowIn 0.5s ease forwards; }
+    @keyframes rowIn {
+      from { opacity:0; transform: translateX(-8px); }
+      to { opacity:1; transform: translateX(0); }
+    }
+    .ledger-table tr.fraud-row td:first-child {
+      border-left: 2px solid var(--red);
+    }
+    .ledger-table tr.fraud-row td { color: rgba(255,63,108,0.8); }
+
+    .tx-id {
+      font-size: 0.65rem;
+      color: var(--txt3);
+      max-width: 90px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 500;
+    }
+    .status-badge.completed { background: var(--mint-dim); color: var(--mint); }
+    .status-badge.failed { background: var(--red-dim); color: var(--red); }
+    .status-badge.fraud { background: var(--red-dim); color: var(--red); }
+
+    .fraud-feed { overflow-y: auto; max-height: 200px; }
+    .fraud-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(100,160,255,0.04);
+      animation: rowIn 0.4s ease;
+    }
+    .fraud-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: var(--red-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+      border: 1px solid rgba(255,63,108,0.2);
+    }
+    .fraud-text { flex: 1; min-width: 0; }
+    .fraud-tx { font-family: var(--font-mono); font-size: 0.68rem; color: var(--red); margin-bottom: 2px; }
+    .fraud-reason { font-size: 0.72rem; color: var(--txt2); }
+    .fraud-time { font-family: var(--font-mono); font-size: 0.62rem; color: var(--txt3); }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .event-log {
+      background: var(--bg0);
+      border-radius: 8px;
+      padding: 12px;
+      height: 160px;
+      overflow-y: auto;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      line-height: 1.8;
+      border: 1px solid var(--border);
+    }
+    .log-line { animation: rowIn 0.3s ease; }
+    .log-line .ts { color: var(--txt3); margin-right: 8px; }
+    .log-line .cat-info { color: var(--txt2); }
+    .log-line .cat-ok { color: var(--mint); }
+    .log-line .cat-err { color: var(--red); }
+
+    .progress-wrap {
+      background: var(--bg0);
+      border-radius: 4px;
+      height: 6px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .progress-bar {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--indigo), var(--cyan));
+      width: 0%;
+      transition: width 0.1s linear;
+      box-shadow: 0 0 10px rgba(0,200,255,0.4);
+    }
+    .stress-info {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--txt3);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 30px 0;
+      color: var(--txt3);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+
+    .status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--txt2);
+    }
+
+    @media (max-width: 1200px) {
+      .metrics-row { grid-template-columns: repeat(3, 1fr); }
+      .top-grid { grid-template-columns: 1fr; }
+      .charts-grid { grid-template-columns: 1fr; }
+      .bottom-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .metrics-row { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .nav-services { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Ledger<span>OS</span></div>
+  <div class="nav-services">
+    <div class="svc-badge"><div class="dot" id="ws-dot"></div>WebSocket</div>
+    <div class="svc-badge"><div class="dot" id="api-dot"></div>API</div>
+  </div>
+  <div class="nav-time" id="clock">--:--:--</div>
+</nav>
+
+<div class="container">
+
+  <div class="metrics-row">
+    <div class="metric">
+      <div class="metric-label">Total Transacciones</div>
+      <div class="metric-value cyan" id="m-total">0</div>
+      <div class="metric-sub" id="m-last">Ultima: --</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Completadas</div>
+      <div class="metric-value mint" id="m-ok">0</div>
+      <div class="metric-sub" id="m-ok-pct">— %</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Fallidas</div>
+      <div class="metric-value red" id="m-fail">0</div>
+      <div class="metric-sub" id="m-fail-pct">— %</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Alertas Fraude</div>
+      <div class="metric-value amber" id="m-fraud">0</div>
+      <div class="metric-sub" id="m-fraud-pct">— %</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Volumen Total</div>
+      <div class="metric-value indigo" id="m-vol">$0</div>
+      <div class="metric-sub" id="m-avg">Promedio: $0</div>
+    </div>
+  </div>
+
+  <div class="top-grid">
+    <div class="card">
+      <div class="card-title">Panel de Control <span class="pill">API Gateway</span></div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">From User</label>
+          <input class="form-control" id="from-user" value="alice" placeholder="alice">
+        </div>
+        <div class="form-group">
+          <label class="form-label">To User</label>
+          <input class="form-control" id="to-user" value="bob" placeholder="bob">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Monto (USD)</label>
+        <div class="slider-row">
+          <input type="range" id="amount-slider" min="1" max="30000" step="1" value="500">
+          <div class="amount-display" id="amount-display">$500</div>
+        </div>
+      </div>
+
+      <button class="btn btn-full" id="btn-send">▶ POST /transfer</button>
+
+      <hr class="divider">
+
+      <div class="card-title" style="margin-bottom:10px;">Stress Test <span class="pill">Load</span></div>
+      <div class="stress-presets">
+        <button class="btn btn-stress" data-burst="10">10 tx</button>
+        <button class="btn btn-stress" data-burst="50">50 tx</button>
+        <button class="btn btn-stress" data-burst="200">200 tx</button>
+        <button class="btn btn-stress" data-burst="500">500 tx</button>
+        <button class="btn btn-danger" id="btn-stop">⏹ Stop</button>
+      </div>
+      <div class="progress-wrap"><div class="progress-bar" id="stress-bar"></div></div>
+      <div class="stress-info">
+        <span id="stress-label">Inactivo</span>
+        <span id="stress-tps">0 tx/s</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Transacciones por Segundo <span class="pill mint">LIVE</span></div>
+      <div style="position:relative;height:260px;">
+        <canvas id="lineChart" role="img" aria-label="Grafica de transacciones completadas y fallidas en el tiempo"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="card">
+      <div class="card-title">Volumen de Montos <span class="pill">Kafka: transactions_log</span></div>
+      <div style="position:relative;height:200px;">
+        <canvas id="barChart" role="img" aria-label="Histograma de montos de transacciones"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Estado Global</div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div style="position:relative;height:160px;width:160px;flex-shrink:0;">
+          <canvas id="doughnutChart" role="img" aria-label="Proporcion completadas vs fallidas vs fraude"></canvas>
+        </div>
+        <div id="donut-legend" style="flex:1;display:flex;flex-direction:column;gap:8px;font-family:var(--font-mono);font-size:0.72rem;">
+          <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:2px;background:#00E5A0;display:inline-block;"></span><span style="color:var(--txt2);">Completadas</span><span style="margin-left:auto;color:var(--txt);" id="dl-ok">0</span></div>
+          <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:2px;background:#FF3F6C;display:inline-block;"></span><span style="color:var(--txt2);">Fallidas</span><span style="margin-left:auto;color:var(--txt);" id="dl-fail">0</span></div>
+          <div style="display:flex;align-items:center;gap:8px;"><span style="width:10px;height:10px;border-radius:2px;background:#F59E0B;display:inline-block;"></span><span style="color:var(--txt2);">Fraude</span><span style="margin-left:auto;color:var(--txt);" id="dl-fraud">0</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-grid">
+    <div class="card" style="grid-column:span 2">
+      <div class="card-title">Ledger de Eventos — transactions_log <span class="pill">Kafka Topic</span></div>
+      <div class="ledger-wrap">
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th>TX_ID</th>
+              <th>FROM</th>
+              <th>TO</th>
+              <th>MONTO</th>
+              <th>STATUS</th>
+              <th>TIMESTAMP</th>
+              <th>FRAUDE</th>
+            </tr>
+          </thead>
+          <tbody id="ledger-body">
+            <tr><td colspan="7" class="empty-state">Esperando transacciones...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        Alertas de Fraude
+        <span class="pill red">fraud_alerts</span>
+        <span class="badge-count" id="fraud-badge">0</span>
+      </div>
+      <div class="fraud-feed" id="fraud-feed">
+        <div class="empty-state">Sin alertas activas</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="card">
+      <div class="card-title">Estado de servicios</div>
+      <div class="status-list" id="service-status">
+        <div>WebSocket: <span id="ws-status">conectando</span></div>
+        <div>API: <span id="api-status">sin verificar</span></div>
+        <div>transfer_commands: <span id="queue-transfer">—</span></div>
+        <div>email_queue: <span id="queue-email">—</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Event Log del Sistema <span class="pill mint">Bus de Eventos</span></div>
+      <div class="event-log" id="event-log">
+        <div class="log-line"><span class="ts">[BOOT]</span> <span class="cat-info">Dashboard listo. Esperando eventos...</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const WS_URL = 'ws://18.191.228.35:8081';
+  const API_URL = `http://${location.hostname}:3000/transfer`;
+  const HEALTH_URL = `http://${location.hostname}:3000/health`;
+
+  const state = {
+    total: 0,
+    ok: 0,
+    fail: 0,
+    fraud: 0,
+    volume: 0,
+    ledger: [],
+    fraudAlerts: [],
+    amountBuckets: [0, 0, 0, 0, 0, 0],
+    tpsOk: 0,
+    tpsFail: 0,
+    stress: { running: false, stop: false, sent: 0, target: 0 }
+  };
+
+  const amountLabels = ['<$100', '$100-500', '$500-2K', '$2K-5K', '$5K-10K', '>$10K'];
+  const MAX_POINTS = 30;
+  const timeLabels = [];
+  const okSeries = [];
+  const failSeries = [];
+
+  let lineChart;
+  let barChart;
+  let doughnutChart;
+
+  const el = (id) => document.getElementById(id);
+
+  function ts() {
+    return new Date().toTimeString().slice(0, 8);
+  }
+
+  function fmtMoney(n) {
+    return '$' + Number(n).toLocaleString('es-CO');
+  }
+
+  function bucketIdx(amount) {
+    if (amount < 100) return 0;
+    if (amount < 500) return 1;
+    if (amount < 2000) return 2;
+    if (amount < 5000) return 3;
+    if (amount < 10000) return 4;
+    return 5;
+  }
+
+  function logLine(label, message, cls) {
+    const logEl = el('event-log');
+    const div = document.createElement('div');
+    div.className = 'log-line';
+    div.innerHTML = `<span class="ts">[${label}]</span> <span class="${cls}">${message}</span>`;
+    logEl.insertBefore(div, logEl.firstChild);
+    if (logEl.children.length > 80) logEl.removeChild(logEl.lastChild);
+  }
+
+  function updateClock() {
+    el('clock').textContent = ts();
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  function setStatus(dotId, textId, statusText, isOnline) {
+    const dot = el(dotId);
+    dot.classList.remove('online', 'offline');
+    dot.classList.add(isOnline ? 'online' : 'offline');
+    el(textId).textContent = statusText;
+  }
+
+  function updateMetrics() {
+    el('m-total').textContent = state.total;
+    el('m-ok').textContent = state.ok;
+    el('m-fail').textContent = state.fail;
+    el('m-fraud').textContent = state.fraud;
+
+    const pctOk = state.total ? Math.round((state.ok / state.total) * 100) : 0;
+    const pctFail = state.total ? Math.round((state.fail / state.total) * 100) : 0;
+    const pctFraud = state.total ? Math.round((state.fraud / state.total) * 100) : 0;
+    const avg = state.total ? Math.round(state.volume / state.total) : 0;
+
+    el('m-ok-pct').textContent = `${pctOk}% exito`;
+    el('m-fail-pct').textContent = `${pctFail}% error`;
+    el('m-fraud-pct').textContent = `${pctFraud}% fraude`;
+    el('m-vol').textContent = state.volume >= 1000000
+      ? '$' + (state.volume / 1000000).toFixed(1) + 'M'
+      : state.volume >= 1000
+        ? '$' + (state.volume / 1000).toFixed(1) + 'K'
+        : fmtMoney(state.volume);
+    el('m-avg').textContent = `Promedio: ${fmtMoney(avg)}`;
+
+    el('dl-ok').textContent = state.ok;
+    el('dl-fail').textContent = state.fail;
+    el('dl-fraud').textContent = state.fraud;
+    el('fraud-badge').textContent = state.fraud;
+  }
+
+  function renderLedger() {
+    const tbody = el('ledger-body');
+    tbody.innerHTML = '';
+    if (state.ledger.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Esperando transacciones...</td></tr>';
+      return;
+    }
+
+    state.ledger.slice(0, 100).forEach(tx => {
+      const tr = document.createElement('tr');
+      tr.className = 'new-row' + (tx.is_suspicious ? ' fraud-row' : '');
+      tr.innerHTML = `
+        <td class="tx-id" title="${tx.tx_id}">${tx.tx_id}</td>
+        <td>${tx.from_user}</td>
+        <td>${tx.to_user}</td>
+        <td style="color:${tx.amount >= 10000 ? 'var(--amber)' : 'var(--txt)'}">${fmtMoney(tx.amount)}</td>
+        <td><span class="status-badge ${tx.status.toLowerCase()}">${tx.status}</span></td>
+        <td style="color:var(--txt3)">${new Date(tx.processed_at).toLocaleTimeString('es-CO')}</td>
+        <td>${tx.is_suspicious ? '<span class="status-badge fraud">⚠ FRAUDE</span>' : '—'}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderFraudFeed() {
+    const feed = el('fraud-feed');
+    feed.innerHTML = '';
+    if (state.fraudAlerts.length === 0) {
+      feed.innerHTML = '<div class="empty-state">Sin alertas activas</div>';
+      return;
+    }
+    state.fraudAlerts.slice(0, 20).forEach(tx => {
+      const item = document.createElement('div');
+      item.className = 'fraud-item';
+      item.innerHTML = `
+        <div class="fraud-icon">⚠</div>
+        <div class="fraud-text">
+          <div class="fraud-tx">${tx.tx_id}</div>
+          <div class="fraud-reason">${tx.fraud_reason} · ${fmtMoney(tx.amount)}</div>
+        </div>
+        <div class="fraud-time">${new Date(tx.processed_at).toLocaleTimeString('es-CO')}</div>
+      `;
+      feed.appendChild(item);
+    });
+  }
+
+  function updateCharts() {
+    barChart.data.datasets[0].data = [...state.amountBuckets];
+    barChart.update('none');
+
+    doughnutChart.data.datasets[0].data = [
+      Math.max(state.ok, 0),
+      Math.max(state.fail, 0),
+      Math.max(state.fraud, 0)
+    ];
+    doughnutChart.update('none');
+  }
+
+  function initCharts() {
+    const now = new Date();
+    for (let i = MAX_POINTS; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 1000);
+      timeLabels.push(d.toTimeString().slice(3, 8));
+      okSeries.push(0);
+      failSeries.push(0);
+    }
+
+    const lineCtx = el('lineChart').getContext('2d');
+    lineChart = new Chart(lineCtx, {
+      type: 'line',
+      data: {
+        labels: timeLabels,
+        datasets: [
+          {
+            label: 'Completadas',
+            data: okSeries,
+            borderColor: '#00E5A0',
+            backgroundColor: 'rgba(0,229,160,0.07)',
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0.4,
+            fill: true,
+          },
+          {
+            label: 'Fallidas',
+            data: failSeries,
+            borderColor: '#FF3F6C',
+            backgroundColor: 'rgba(255,63,108,0.06)',
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0.4,
+            fill: true,
+            borderDash: [4, 3],
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 200 },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0C1830',
+            borderColor: 'rgba(100,160,255,0.2)',
+            borderWidth: 1,
+            titleColor: '#6B8BAE',
+            bodyColor: '#CDD9F0',
+            titleFont: { family: 'DM Mono', size: 10 },
+            bodyFont: { family: 'DM Mono', size: 11 },
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(100,160,255,0.04)' },
+            ticks: { color: '#3A5070', font: { family: 'DM Mono', size: 10 }, maxTicksLimit: 8 },
+            border: { color: 'rgba(100,160,255,0.08)' },
+          },
+          y: {
+            grid: { color: 'rgba(100,160,255,0.04)' },
+            ticks: { color: '#3A5070', font: { family: 'DM Mono', size: 10 }, stepSize: 1 },
+            border: { color: 'rgba(100,160,255,0.08)' },
+            beginAtZero: true,
+          }
+        }
+      }
+    });
+
+    const barCtx = el('barChart').getContext('2d');
+    barChart = new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: amountLabels,
+        datasets: [{
+          label: 'Cantidad',
+          data: state.amountBuckets,
+          backgroundColor: [
+            'rgba(0,200,255,0.35)',
+            'rgba(0,200,255,0.45)',
+            'rgba(99,102,241,0.45)',
+            'rgba(99,102,241,0.55)',
+            'rgba(245,158,11,0.45)',
+            'rgba(255,63,108,0.45)',
+          ],
+          borderColor: [
+            'rgba(0,200,255,0.7)',
+            'rgba(0,200,255,0.8)',
+            'rgba(99,102,241,0.7)',
+            'rgba(99,102,241,0.8)',
+            'rgba(245,158,11,0.7)',
+            'rgba(255,63,108,0.7)',
+          ],
+          borderWidth: 1,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 300 },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0C1830',
+            borderColor: 'rgba(100,160,255,0.2)',
+            borderWidth: 1,
+            titleColor: '#6B8BAE',
+            bodyColor: '#CDD9F0',
+            titleFont: { family: 'DM Mono', size: 10 },
+            bodyFont: { family: 'DM Mono', size: 11 },
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(100,160,255,0.04)' },
+            ticks: { color: '#3A5070', font: { family: 'DM Mono', size: 10 } },
+            border: { color: 'rgba(100,160,255,0.08)' },
+          },
+          y: {
+            grid: { color: 'rgba(100,160,255,0.04)' },
+            ticks: { color: '#3A5070', font: { family: 'DM Mono', size: 10 } },
+            border: { color: 'rgba(100,160,255,0.08)' },
+            beginAtZero: true,
+          }
+        }
+      }
+    });
+
+    const doughnutCtx = el('doughnutChart').getContext('2d');
+    doughnutChart = new Chart(doughnutCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Completadas', 'Fallidas', 'Fraude'],
+        datasets: [{
+          data: [1, 0, 0],
+          backgroundColor: ['rgba(0,229,160,0.7)', 'rgba(255,63,108,0.6)', 'rgba(245,158,11,0.6)'],
+          borderColor: ['#00E5A0', '#FF3F6C', '#F59E0B'],
+          borderWidth: 1.5,
+          hoverOffset: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '72%',
+        animation: { duration: 400 },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0C1830',
+            borderColor: 'rgba(100,160,255,0.2)',
+            borderWidth: 1,
+            titleColor: '#6B8BAE',
+            bodyColor: '#CDD9F0',
+            titleFont: { family: 'DM Mono', size: 10 },
+            bodyFont: { family: 'DM Mono', size: 11 },
+          }
+        }
+      }
+    });
+  }
+
+  function tickLineChart() {
+    const now = new Date().toTimeString().slice(3, 8);
+    timeLabels.push(now);
+    okSeries.push(state.tpsOk);
+    failSeries.push(state.tpsFail);
+    state.tpsOk = 0;
+    state.tpsFail = 0;
+
+    if (timeLabels.length > MAX_POINTS) {
+      timeLabels.shift();
+      okSeries.shift();
+      failSeries.shift();
+    }
+
+    lineChart.update('none');
+  }
+
+  setInterval(tickLineChart, 1000);
+
+  function updateFromSnapshot(list) {
+    state.ledger = list.slice().sort((a, b) => new Date(b.processed_at) - new Date(a.processed_at));
+    state.amountBuckets = [0, 0, 0, 0, 0, 0];
+    state.total = 0;
+    state.ok = 0;
+    state.fail = 0;
+    state.fraud = 0;
+    state.volume = 0;
+
+    state.ledger.forEach(tx => {
+      state.total += 1;
+      state.volume += Number(tx.amount || 0);
+      if (tx.status === 'COMPLETED') state.ok += 1;
+      if (tx.status === 'FAILED') state.fail += 1;
+      if (tx.is_suspicious) state.fraud += 1;
+      state.amountBuckets[bucketIdx(Number(tx.amount || 0))] += 1;
+    });
+
+    state.fraudAlerts = state.ledger.filter(tx => tx.is_suspicious);
+    updateMetrics();
+    renderLedger();
+    renderFraudFeed();
+    updateCharts();
+  }
+
+  function handleTxUpdate(tx) {
+    const existingIndex = state.ledger.findIndex(item => item.tx_id === tx.tx_id);
+    if (existingIndex >= 0) {
+      state.ledger[existingIndex] = tx;
+    } else {
+      state.ledger.unshift(tx);
+      state.total += 1;
+      state.volume += Number(tx.amount || 0);
+      state.amountBuckets[bucketIdx(Number(tx.amount || 0))] += 1;
+      if (tx.status === 'COMPLETED') state.ok += 1;
+      if (tx.status === 'FAILED') state.fail += 1;
+      if (tx.status === 'COMPLETED') state.tpsOk += 1;
+      if (tx.status === 'FAILED') state.tpsFail += 1;
+    }
+    el('m-last').textContent = `Ultima: ${new Date(tx.processed_at).toLocaleTimeString('es-CO')}`;
+    updateMetrics();
+    renderLedger();
+    updateCharts();
+  }
+
+  function handleFraud(tx) {
+    const existingIndex = state.ledger.findIndex(item => item.tx_id === tx.tx_id);
+    if (existingIndex >= 0) {
+      state.ledger[existingIndex] = tx;
+    }
+    state.fraudAlerts.unshift(tx);
+    state.fraud = state.fraudAlerts.length;
+    updateMetrics();
+    renderLedger();
+    renderFraudFeed();
+    updateCharts();
+  }
+
+  async function checkHealth() {
+    try {
+      const res = await fetch(HEALTH_URL, { cache: 'no-store' });
+      const ok = res.ok;
+      setStatus('api-dot', 'api-status', ok ? 'ok' : 'error', ok);
+    } catch (err) {
+      setStatus('api-dot', 'api-status', 'sin respuesta', false);
+    }
+  }
+
+  setInterval(checkHealth, 10000);
+  checkHealth();
+
+  async function sendTransfer(payload) {
+    const btn = el('btn-send');
+    btn.disabled = true;
+    btn.textContent = '⏳ Enviando...';
+    try {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        logLine('API', `Transferencia aceptada: ${data.tx_id || 'pendiente'}`, 'cat-ok');
+      } else {
+        logLine('API', `Error: ${data.error || 'fallo'}`, 'cat-err');
+      }
+    } catch (err) {
+      logLine('API', 'Error de red al enviar', 'cat-err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '▶ POST /transfer';
+    }
+  }
+
+  el('amount-slider').addEventListener('input', (event) => {
+    el('amount-display').textContent = fmtMoney(event.target.value);
+  });
+
+  el('btn-send').addEventListener('click', () => {
+    const fromUser = el('from-user').value || 'alice';
+    const toUser = el('to-user').value || 'bob';
+    const amount = Number(el('amount-slider').value || 50);
+    sendTransfer({ from_user: fromUser, to_user: toUser, amount });
+  });
+
+  document.querySelectorAll('[data-burst]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = Number(btn.dataset.burst);
+      startBurst(target);
+    });
+  });
+
+  el('btn-stop').addEventListener('click', () => {
+    state.stress.stop = true;
+  });
+
+  async function startBurst(target) {
+    if (state.stress.running) return;
+    state.stress.running = true;
+    state.stress.stop = false;
+    state.stress.sent = 0;
+    state.stress.target = target;
+    el('stress-label').textContent = `Enviando ${target} transacciones...`;
+    const users = ['alice', 'bob', 'carlos', 'diana', 'eva', 'frank'];
+    const delayMs = target <= 50 ? 120 : target <= 200 ? 80 : 40;
+
+    while (!state.stress.stop && state.stress.sent < state.stress.target) {
+      const from = users[Math.floor(Math.random() * users.length)];
+      let to = users[Math.floor(Math.random() * users.length)];
+      if (to === from) to = users[(users.indexOf(from) + 1) % users.length];
+      const amount = Math.random() < 0.12 ? Math.floor(10001 + Math.random() * 40000) : Math.floor(10 + Math.random() * 9000);
+      sendTransfer({ from_user: from, to_user: to, amount });
+      state.stress.sent += 1;
+      const pct = Math.round((state.stress.sent / state.stress.target) * 100);
+      el('stress-bar').style.width = pct + '%';
+      el('stress-label').textContent = `${state.stress.sent}/${state.stress.target} tx`;
+      el('stress-tps').textContent = `${state.stress.sent} enviadas`;
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+
+    state.stress.running = false;
+    el('stress-label').textContent = state.stress.stop ? 'Detenido' : `Completado: ${state.stress.sent} tx`;
+    setTimeout(() => {
+      el('stress-bar').style.width = '0%';
+      el('stress-label').textContent = 'Inactivo';
+      el('stress-tps').textContent = '0 tx/s';
+    }, 3000);
+  }
+
+  function connect() {
+    const ws = new WebSocket(WS_URL);
+    setStatus('ws-dot', 'ws-status', 'conectando', false);
+
+    ws.onopen = () => {
+      setStatus('ws-dot', 'ws-status', 'conectado', true);
+      logLine('WS', 'Conexion WebSocket activa', 'cat-ok');
+    };
+
+    ws.onmessage = ({ data }) => {
+      const msg = JSON.parse(data);
+      if (msg.type === 'SNAPSHOT') {
+        updateFromSnapshot(msg.data || []);
+        logLine('WS', `Snapshot recibido (${msg.data?.length || 0} tx)`, 'cat-info');
+        return;
+      }
+      if (msg.type === 'TX_UPDATE') {
+        handleTxUpdate(msg.data);
+        logLine('TX', `Evento ${msg.data.tx_id} ${msg.data.status}`, 'cat-info');
+      }
+      if (msg.type === 'FRAUD_ALERT') {
+        handleFraud(msg.data);
+        logLine('FRAUD', `${msg.data.tx_id} ${msg.data.fraud_reason}`, 'cat-err');
+      }
+      if (msg.type === 'QUEUE_STATS') {
+        const transfer = msg.data?.transfer_commands;
+        const email = msg.data?.email_queue;
+        if (transfer) {
+          el('queue-transfer').textContent = `${transfer.messages} total, ${transfer.ready} ready, ${transfer.unacked} unacked`;
+        }
+        if (email) {
+          el('queue-email').textContent = `${email.messages} total, ${email.ready} ready, ${email.unacked} unacked`;
+        }
+      }
+    };
+
+    ws.onclose = () => {
+      setStatus('ws-dot', 'ws-status', 'desconectado', false);
+      logLine('WS', 'Conexion perdida. Reintentando...', 'cat-err');
+      setTimeout(connect, 3000);
+    };
+  }
+
+  window.addEventListener('load', () => {
+    initCharts();
+    connect();
+  });
+</script>
+</body>
+</html>
