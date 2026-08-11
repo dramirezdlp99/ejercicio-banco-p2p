@@ -10,7 +10,10 @@ async function connectRabbitMQ() {
     try {
       const conn = await amqp.connect(process.env.RABBITMQ_URL);
       const channel = await conn.createChannel();
-      await channel.assertQueue('transfer_commands', { durable: true });
+      await channel.assertQueue('transfer_commands', {
+        durable: true,
+        arguments: { 'x-dead-letter-exchange': 'dlx.transfer_commands' },
+      });
       channel.prefetch(1);
       console.log('✅ Conectado a RabbitMQ, esperando comandos...');
       return channel;
@@ -46,12 +49,12 @@ async function main() {
   channel.consume('transfer_commands', async (msg) => {
     if (!msg) return;
 
-    const comando = JSON.parse(msg.content.toString());
-    console.log(`⚙️  Procesando transacción: ${comando.tx_id}`);
-
     try {
-      // Simular validación: 80% éxito, 20% fallo
-      const status = Math.random() > 0.2 ? 'COMPLETED' : 'FAILED';
+      const comando = JSON.parse(msg.content.toString());
+      console.log(`⚙️  Procesando transaccion: ${comando.tx_id}`);
+
+      // Simular validacion: 70% exito, 30% fallo
+      const status = Math.random() < 0.7 ? 'COMPLETED' : 'FAILED';
 
       const evento = {
         tx_id: comando.tx_id,
@@ -59,10 +62,9 @@ async function main() {
         to_user: comando.to_user,
         amount: comando.amount,
         status,
-        timestamp: new Date().toISOString()
+        processed_at: new Date().toISOString()
       };
 
-      // Publicar en Kafka como ledger inmutable
       await producer.send({
         topic: 'transactions_log',
         messages: [{
@@ -74,9 +76,8 @@ async function main() {
       console.log(`📒 Evento publicado en Kafka: ${comando.tx_id} -> ${status}`);
       channel.ack(msg);
     } catch (err) {
-      console.error(`❌ Error procesando ${comando.tx_id}:`, err.message);
-      // Devolver el mensaje a la cola para reintento
-      channel.nack(msg, false, true);
+      console.error('❌ Error procesando comando:', err.message);
+      channel.nack(msg, false, false);
     }
   });
 }

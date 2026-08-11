@@ -2,12 +2,12 @@ const amqp = require('amqplib');
 
 let channel;
 
-const anuncios = [
-  '¡Obtenga nuestra nueva Tarjeta de Crédito con 0% de interés!',
-  '¡Abra una cuenta de ahorros y gane 5% de interés anual!',
-  '¡Solicite su préstamo personal con las mejores tasas del mercado!',
-  '¡Invierta en fondos mutuos y haga crecer su dinero!'
+const ADS = [
+  { subject: '¡Obtén tu Tarjeta de Crédito Platinum!', body: 'Sin cuota de manejo el primer año. Aplica hoy.' },
+  { subject: 'Inversiones que generan rendimientos reales', body: 'Tu dinero trabajando 24/7. Conoce LedgerInvest.' },
+  { subject: '¡Transfiere gratis este fin de semana!', body: 'Sin comision en transferencias del sabado al domingo.' }
 ];
+let adIndex = 0;
 
 async function connectRabbitMQ() {
   let retries = 10;
@@ -30,19 +30,13 @@ async function main() {
   await connectRabbitMQ();
 
   setInterval(() => {
-    const anuncio = anuncios[Math.floor(Math.random() * anuncios.length)];
-    const emailTask = {
-      to: 'all_users@banco.com',
-      body: anuncio
-    };
+    const ad = ADS[adIndex % ADS.length];
+    adIndex++;
+    const emailTask = { to: 'all_users@ledger.com', ...ad, type: 'advertisement' };
 
-    channel.sendToQueue(
-      'email_queue',
-      Buffer.from(JSON.stringify(emailTask)),
-      { persistent: true }
-    );
+    channel.sendToQueue('email_queue', Buffer.from(JSON.stringify(emailTask)), { persistent: true });
 
-    console.log(`📢 Anuncio enviado: ${anuncio}`);
+    console.log(`📢 Anuncio enviado: ${ad.subject}`);
   }, 30000);
 
   console.log('🎯 Ad generator corriendo, enviando anuncios cada 30 segundos...');

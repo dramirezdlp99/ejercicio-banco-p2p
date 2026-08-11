@@ -12,12 +12,20 @@ async function connectRabbitMQ() {
 
       channel.consume('email_queue', (msg) => {
         if (!msg) return;
-        const tarea = JSON.parse(msg.content.toString());
-        console.log(`📨 ENVIANDO EMAIL a [${tarea.to}]: ${tarea.body}`);
-        setTimeout(() => {
-          channel.ack(msg);
-          console.log(`✅ Email enviado a [${tarea.to}]`);
-        }, 500);
+        const email = JSON.parse(msg.content.toString());
+
+        console.log(`
+╔════════════════════════════════════════╗
+║           EMAIL WORKER — ENVIANDO      ║
+╠════════════════════════════════════════╣
+  Para:    ${email.to}
+  Asunto:  ${email.subject}
+  Cuerpo:  ${email.body}
+  ${email.tx_id ? `TX ID:   ${email.tx_id}` : 'Tipo:    Publicidad'}
+╚════════════════════════════════════════╝
+        `);
+
+        channel.ack(msg);
       });
 
       return;

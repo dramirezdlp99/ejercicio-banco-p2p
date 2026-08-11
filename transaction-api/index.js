@@ -1,9 +1,27 @@
 const express = require('express');
 const amqp = require('amqplib');
-const { v4: uuidv4 } = require('uuid');
+const rateLimit = require('express-rate-limit');
+const cors = require('cors');
+const { randomUUID } = require('crypto');
 
 const app = express();
 app.use(express.json());
+app.use(cors());
+
+// Rate limiter configurable vía variables de entorno:
+// - DISABLE_RATE_LIMIT=1 -> desactiva (útil en desarrollo)
+// - RATE_LIMIT_WINDOW_MS (ms) y RATE_LIMIT_MAX (número de requests por ventana)
+const limiter = rateLimit({
+  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 1000,
+  max: Number(process.env.RATE_LIMIT_MAX) || 10,
+  message: process.env.RATE_LIMIT_MESSAGE || 'Demasiadas solicitudes',
+});
+
+if (process.env.DISABLE_RATE_LIMIT === '1') {
+  console.log('⚠️ Rate limiter desactivado (DISABLE_RATE_LIMIT=1)');
+} else {
+  app.use(limiter);
+}
 
 let channel;
 
@@ -14,7 +32,10 @@ async function connectRabbitMQ() {
     try {
       const conn = await amqp.connect(process.env.RABBITMQ_URL);
       channel = await conn.createChannel();
-      await channel.assertQueue('transfer_commands', { durable: true });
+      await channel.assertQueue('transfer_commands', {
+        durable: true,
+        arguments: { 'x-dead-letter-exchange': 'dlx.transfer_commands' },
+      });
       console.log('✅ Conectado a RabbitMQ');
       return;
     } catch (err) {
@@ -30,8 +51,8 @@ async function connectRabbitMQ() {
 app.post('/transfer', async (req, res) => {
   const { from_user, to_user, amount } = req.body;
 
-  if (!from_user || !to_user || !amount) {
-    return res.status(400).json({ error: 'Faltan campos: from_user, to_user, amount' });
+  if (!from_user || !to_user || !amount || amount <= 0) {
+    return res.status(400).json({ error: 'Campos requeridos: from_user, to_user, amount (> 0)' });
   }
   if (typeof amount !== 'number' || amount <= 0) {
     return res.status(400).json({ error: 'amount debe ser un número positivo' });
@@ -40,20 +61,19 @@ app.post('/transfer', async (req, res) => {
     return res.status(503).json({ error: 'Servicio no disponible, intentar de nuevo' });
   }
 
-  const tx_id = uuidv4();
-  const comando = { tx_id, from_user, to_user, amount, timestamp: new Date().toISOString() };
+  const tx_id = randomUUID();
+  const comando = { tx_id, from_user, to_user, amount, issued_at: new Date().toISOString() };
 
-  channel.sendToQueue(
-    'transfer_commands',
-    Buffer.from(JSON.stringify(comando)),
-    { persistent: true }
-  );
+  channel.sendToQueue('transfer_commands', Buffer.from(JSON.stringify(comando)), {
+    persistent: true,
+    contentType: 'application/json',
+  });
 
   console.log(`📤 Comando enviado a RabbitMQ: ${tx_id}`);
-  res.json({ message: 'Transferencia recibida', tx_id });
+  res.status(202).json({ tx_id, message: 'Transaccion en proceso', status: 'PENDING' });
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', service: 'transaction-api' }));
 
 async function main() {
   await connectRabbitMQ();
