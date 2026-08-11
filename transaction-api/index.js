@@ -54,6 +54,12 @@ app.post('/transfer', async (req, res) => {
   if (!from_user || !to_user || !amount || amount <= 0) {
     return res.status(400).json({ error: 'Campos requeridos: from_user, to_user, amount (> 0)' });
   }
+  if (typeof amount !== 'number' || amount <= 0) {
+    return res.status(400).json({ error: 'amount debe ser un número positivo' });
+  }
+  if (!channel) {
+    return res.status(503).json({ error: 'Servicio no disponible, intentar de nuevo' });
+  }
 
   const tx_id = randomUUID();
   const comando = { tx_id, from_user, to_user, amount, issued_at: new Date().toISOString() };
